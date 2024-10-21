@@ -63,9 +63,9 @@ def summary_rdv():
     # Apply this function to create a new column 'Category'
     last_week_activities['Category'] = last_week_activities.apply(categorize_lead_and_volume, axis=1)
 
-    # Creating the 'Prospect' column by combining "Organisation - Nom" and "monthly_volume" without decimals
+    # Creating the 'Prospect' column by combining "Organisation - Nom" and "monthly_volume" with the € symbol
     last_week_activities['Prospect'] = last_week_activities.apply(
-        lambda row: f'{row["organisation_name"]} : {int(row["monthly_volume"])}', axis=1  # Format monthly_volume as an integer
+        lambda row: f'{row["organisation_name"]} : {int(row["monthly_volume"])} €', axis=1  # Add € symbol to monthly_volume
     )
 
     # Now, let's compute the number of items, total values, and concatenate prospects for each category
@@ -116,8 +116,9 @@ def summary_rdv():
     # Print the final summary in the requested order
     final_summary = final_summary[['Category', 'Nombre_d_items', 'Total_des_valeurs', 'Prospect']]
 
-    final_summary.to_csv("/Users/patrick/PycharmProjects/stats/csv/pipedrive/summary_rdv.csv")
+    final_summary.to_csv("/Users/patrick/PycharmProjects/stats/csv/pipedrive/summary_rdv.csv", index=False)
     print(final_summary)
+
 
 def summary_deals():
     # Load the CSV file provided by the user
@@ -151,9 +152,9 @@ def summary_deals():
     # Apply this function to create a new column 'Category'
     last_week_deals['Category'] = last_week_deals.apply(categorize_deal, axis=1)
 
-    # Creating the 'Prospect' column by combining "Affaire - Organisation" and "Affaire - Valeur" without decimals
+    # Creating the 'Prospect' column by combining "Affaire - Organisation" and "Affaire - Valeur" with the € symbol
     last_week_deals['Prospect'] = last_week_deals.apply(
-        lambda row: f'{row["Affaire - Organisation"]} : {int(row["Affaire - Valeur"])}', axis=1  # Format value as integer
+        lambda row: f'{row["Affaire - Organisation"]} : {int(row["Affaire - Valeur"])} €', axis=1
     )
 
     # Now, let's compute the number of items, total values, and concatenate prospects for each category
@@ -221,22 +222,23 @@ def summary_merge():
     # Format the dates for the title
     formatted_date_range = f'{start_of_week_last.strftime("%d/%m/%Y")} - {end_of_week_last.strftime("%d/%m/%Y")}'
 
-    # Add the € symbol to the 'Total_des_valeurs' and 'Prospect' columns
+    # Add the € symbol to the 'Total_des_valeurs' and 'Prospect' columns for both RDV and deals
     df_rdv_clean['Total_des_valeurs'] = df_rdv_clean['Total_des_valeurs'].apply(lambda x: f'{x} €')
     df_offers_clean['Total_des_valeurs'] = df_offers_clean['Total_des_valeurs'].apply(lambda x: f'{x} €')
 
-    # Apply the same for 'Prospect' column, sorting values by amount in descending order
+    # Apply the € symbol to the 'Prospect' column and sorting values by amount in descending order
     def sort_prospects(prospect_str):
         if isinstance(prospect_str, str):
             # Split each prospect and extract the numeric part for sorting
             prospects = prospect_str.split(', ')
-            sorted_prospects = sorted(prospects, key=lambda x: int(x.split(':')[1].strip()), reverse=True)
+            sorted_prospects = sorted(prospects, key=lambda x: int(x.split(':')[1].strip(' €')), reverse=True)
             return ', '.join(sorted_prospects)
         else:
             return prospect_str  # Return the original value if not a string (likely NaN)
 
-    df_rdv_clean['Prospect'] = df_rdv_clean['Prospect'].apply(sort_prospects)
-    df_offers_clean['Prospect'] = df_offers_clean['Prospect'].apply(sort_prospects)
+    # Apply sorting and € formatting to the 'Prospect' columns of both RDV and offers
+    df_rdv_clean['Prospect'] = df_rdv_clean['Prospect'].apply(lambda x: sort_prospects(x) if pd.notnull(x) else '')
+    df_offers_clean['Prospect'] = df_offers_clean['Prospect'].apply(lambda x: sort_prospects(x) if pd.notnull(x) else '')
 
     # Write the updated data into Excel with the correct date range and without extra spacing
     excel_file_path_updated = '/Users/patrick/PycharmProjects/stats/csv/pipedrive/resume_rdvs_offers.xlsx'
@@ -244,8 +246,8 @@ def summary_merge():
         # Write the first table (Resume des RDV)
         df_rdv_clean.to_excel(writer, sheet_name='Sheet1', startrow=1, index=False)
 
-        # Write the second table (Resume des Offres) with exactly 3 interline spacing
-        df_offers_clean.to_excel(writer, sheet_name='Sheet1', startrow=len(df_rdv_clean) + 4, index=False)
+        # Write the second table (Resume des Offres) with exactly 3 interline spacing, no extra header
+        df_offers_clean.to_excel(writer, sheet_name='Sheet1', startrow=len(df_rdv_clean) + 5, header=True, index=False)
 
         # Access the workbook and worksheet objects
         workbook = writer.book
@@ -259,11 +261,14 @@ def summary_merge():
         # Apply header formatting
         header_format = workbook.add_format({'bold': True, 'bg_color': '#FFC000', 'border': 1})
 
+        # Apply header formatting to the first table (RDV)
         for col_num, value in enumerate(df_rdv_clean.columns.values):
             worksheet.write(1, col_num, value, header_format)
 
+        # Apply header formatting to the second table (Deals) manually
         for col_num, value in enumerate(df_offers_clean.columns.values):
             worksheet.write(len(df_rdv_clean) + 5, col_num, value, header_format)
+
 
 
 summary_rdv()
