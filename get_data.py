@@ -29,7 +29,6 @@ def get_activities():
     all_data = []  # To store activities from all API tokens
 
     for api_token in api_tokens:
-        print(f"Fetching data for API token: {api_token}")
 
         # Define the base API URL for activities with the filter_id
         base_url = f"https://api.pipedrive.com/v1/activities?filter_id=1573&api_token={api_token}"
@@ -66,7 +65,6 @@ def get_activities():
                     # Otherwise, move to the next page
                     start += limit
             else:
-                print(f"Failed to retrieve data for API token: {api_token}")
                 break
 
     # Define the list of columns to keep
@@ -85,7 +83,7 @@ def get_activities():
         df_filtered = df[columns_to_keep]
 
         # Save the filtered data to a CSV file
-        df_filtered.to_csv("csv/pipedrive/activities_1573.csv", index=False)
+        df_filtered.to_csv("/Users/patrick/PycharmProjects/stats/csv/pipedrive/activities_1573.csv", index=False)
         print("Filtered data saved to 'pipe_activities_filtered_1573.csv'")
     else:
         print("No data to save.")
@@ -105,7 +103,6 @@ def get_deals():
     all_data = []  # To store activities from all API tokens
 
     for api_token in api_tokens:
-        print(f"Fetching data for API token: {api_token}")
 
         # Define the base API URL for activities with the filter_id
         base_url = f"https://api.pipedrive.com/v1/deals?filter_id=1574&api_token={api_token}"
@@ -177,13 +174,13 @@ def get_deals():
 
 
         # Save the filtered data to a CSV file
-        df_filtered.to_csv("csv/pipedrive/deals_1574.csv", index=False)
+        df_filtered.to_csv("/Users/patrick/PycharmProjects/stats/csv/pipedrive/deals_1574.csv", index=False)
         print("Filtered data saved to 'pipe_deals_filtered_1574.csv'")
     else:
         print("No data to save.")
 
 def clean_deals():
-    df = pd.read_csv('csv/pipedrive/deals_1574.csv')
+    df = pd.read_csv('/Users/patrick/PycharmProjects/stats/csv/pipedrive/deals_1574.csv')
     # Define the renaming dictionary
     column_renaming = {
         'id': 'Affaire - ID',
@@ -203,7 +200,7 @@ def clean_deals():
     # Apply the renaming
     df.rename(columns=column_renaming, inplace=True)
 
-    df_act = pd.read_csv('csv/pipedrive/final_activities.csv')
+    df_act = pd.read_csv('/Users/patrick/PycharmProjects/stats/csv/pipedrive/final_activities.csv')
 
     # Rename 'org_id' in df to match 'Organisation - ID' in df_act for the merge operation
     df.rename(columns={'org_id': 'Organisation - ID'}, inplace=True)
@@ -234,10 +231,10 @@ def clean_deals():
         subset='Affaire - Organisation', keep='first')
 
     # Save the final DataFrame to a CSV file
-    df_deals.to_csv("csv/pipedrive/final_deal.csv", index=False)
+    df_deals.to_csv("/Users/patrick/PycharmProjects/stats/csv/pipedrive/final_deal.csv", index=False)
 
 def get_org():
-    df = pd.read_csv("csv/pipedrive/activities_1573.csv")
+    df = pd.read_csv("/Users/patrick/PycharmProjects/stats/csv/pipedrive/activities_1573.csv")
     # Function to get organization details from Pipedrive API
     # Organization columns we need to extract and rename
     org_columns = {
@@ -270,7 +267,7 @@ def get_org():
     org_details_list = []
 
     # Pipedrive API token (replace with your active token)
-    api_token = "ee422492cf8524fccc4914a021bca955e0153745"
+    api_token = config.api_pipedrive
 
     # Get unique org_ids from the DataFrame
     unique_org_ids = df['org_id'].unique()
@@ -286,12 +283,12 @@ def get_org():
     # Merging the organization details back into the original DataFrame using 'org_id' as the key
     merged_df = pd.merge(df, org_details_df, on='org_id', how='left')
 
-    merged_df.to_csv("csv/pipedrive/activities_1573_with_details.csv")
+    merged_df.to_csv("/Users/patrick/PycharmProjects/stats/csv/pipedrive/activities_1573_with_details.csv")
 
 def merge_and_remove_duplicates():
     # Load the two dataframes
-    df1 = pd.read_csv('csv/pipedrive/activities_1573.csv')
-    df2 = pd.read_csv('csv/pipedrive/activities_1573_with_details.csv')
+    df1 = pd.read_csv('/Users/patrick/PycharmProjects/stats/csv/pipedrive/activities_1573.csv')
+    df2 = pd.read_csv('/Users/patrick/PycharmProjects/stats/csv/pipedrive/activities_1573_with_details.csv')
 
     # Merge with suffixes to differentiate between overlapping column names
     df = pd.merge(df1, df2, on='org_id', how='left', suffixes=('', '_duplicate'))
@@ -381,7 +378,7 @@ def merge_and_remove_duplicates():
     df_filtered = df_deduplicated[columns_to_keep]
 
     # Save the final merged dataframe to a CSV file
-    df_filtered.to_csv("csv/pipedrive/final_activities.csv", index=False)
+    df_filtered.to_csv("/Users/patrick/PycharmProjects/stats/csv/pipedrive/final_activities.csv", index=False)
 
 def updated():
     import gspread
@@ -389,7 +386,7 @@ def updated():
     import pandas as pd
 
     # Chemin vers vos credentials JSON
-    CREDENTIALS_FILE = 'creds/n8n-api-311609-115ae3a49fd9.json'
+    CREDENTIALS_FILE = '/Users/patrick/PycharmProjects/stats/creds/n8n-api-311609-115ae3a49fd9.json'
 
     # URL de votre Google Sheet
     GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1OxhBYP_WN99qPinTAFyjr9ZcD9AGLkrFB7C56Fu0O8M/edit?gid=1575663403'
@@ -403,7 +400,7 @@ def updated():
 
     # ------------------ Upload final_activities.csv to the "Demos" sheet ------------------ #
     # CSV que vous souhaitez uploader
-    CSV_FILE_ACTIVITIES = 'csv/pipedrive/final_activities.csv'
+    CSV_FILE_ACTIVITIES = '/Users/patrick/PycharmProjects/stats/csv/pipedrive/final_activities.csv'
 
     # Nom de l'onglet dans lequel vous voulez uploader le CSV (Demos)
     WORKSHEET_NAME_ACTIVITIES = 'Demos'
@@ -428,7 +425,7 @@ def updated():
 
     # ------------------ Upload final_deal.csv to the "Affaires" sheet ------------------ #
     # CSV que vous souhaitez uploader
-    CSV_FILE_DEAL = 'csv/pipedrive/final_deal.csv'
+    CSV_FILE_DEAL = '/Users/patrick/PycharmProjects/stats/csv/pipedrive/final_deal.csv'
 
     # Nom de l'onglet dans lequel vous voulez uploader le CSV (Affaires)
     WORKSHEET_NAME_DEAL = 'Affaires'
@@ -462,8 +459,8 @@ def envoi_email(status,error):
     body = (
         f'{error}'
     )
-    creds_file = 'creds/cred_gmail.json'
-    token_file = 'token.json'
+    creds_file = '/Users/patrick/PycharmProjects/stats/creds/cred_gmail.json'
+    token_file = '/Users/patrick/PycharmProjects/stats/token.json'
     def authenticate_gmail():
         """Authentifie l'utilisateur via OAuth 2.0 et retourne les credentials"""
         creds = None
@@ -516,3 +513,6 @@ def envoi_email(status,error):
     # Envoyer l'e-mail
     send_email(service, 'me', message)
     print("Mail envoyé pour vérif ")
+
+
+

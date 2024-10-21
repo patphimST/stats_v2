@@ -9,13 +9,10 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import base64
 from get_data import *
-# Other imports (requests, pandas, config, etc.)
 import requests
 import pandas as pd
 import config
 
-
-# Include your functions here (get_activities, get_deals, clean_deals, etc.)
 
 def main():
     try:
@@ -48,7 +45,6 @@ def main():
     # Finally, send the status email
     envoi_email(status, error)
 
-
 def envoi_email(status, error):
     # The envoi_email function as provided, without changes
     SCOPES = ['https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/gmail.readonly']
@@ -60,8 +56,8 @@ def envoi_email(status, error):
 
     # Construction du corps de l'e-mail
     body = f'{error}'
-    creds_file = 'creds/cred_gmail.json'
-    token_file = 'token.json'
+    creds_file = '/Users/patrick/PycharmProjects/stats/creds/cred_gmail.json'
+    token_file = '/Users/patrick/PycharmProjects/stats/token.json'
 
     def authenticate_gmail():
         """Authentifie l'utilisateur via OAuth 2.0 et retourne les credentials"""
@@ -107,6 +103,7 @@ def envoi_email(status, error):
     print("Mail envoyé pour vérification")
 
 
-# Run the main function
 if __name__ == "__main__":
     main()
+
+
