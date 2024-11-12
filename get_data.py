@@ -89,6 +89,13 @@ def get_activities():
     else:
         print("No data to save.")
 
+
+import requests
+import json
+import pandas as pd
+import config  # Assuming config holds your API tokens
+
+
 def get_deals():
     print("########### GET PORTEFEUILLE START ###########")
 
@@ -104,10 +111,8 @@ def get_deals():
     all_data = []  # To store activities from all API tokens
 
     for api_token in api_tokens:
-
         # Define the base API URL for activities with the filter_id
         base_url = f"https://api.pipedrive.com/v1/deals?filter_id=1574&api_token={api_token}"
-
         start = 0
         limit = 400  # Set a reasonable limit for pagination
 
@@ -121,12 +126,9 @@ def get_deals():
                 'Cookie': '__cf_bm=iHJQT34iNDqL_9aEoTv6DUIb4h5R5tRU7NUUFYPEnrY-1729235478-1.0.1.1-.uAb42hCTClrFiw_CZQuiqzvMmtMn8b1Vl0LvUWlv4fwQR1tAsUuxnKadKOAGaGGALlCOyL6SrUQpegQqJgLgw'
             }
 
-            response = requests.request("GET", url, headers=headers, data=payload)
+            response = requests.get(url, headers=headers, data=payload)
+            response_json = response.json()
 
-            # Parse the response text as JSON
-            response_json = json.loads(response.text)
-
-            # Check if 'success' is True and 'data' is present
             if response_json.get("success") and "data" in response_json:
                 data = response_json["data"]
                 # Add this page's data to the all_data list
@@ -134,51 +136,45 @@ def get_deals():
 
                 # Check if more data is available
                 if len(data) < limit:
-                    # If fewer items are returned than the limit, we've reached the end
-                    break
+                    break  # No more data to fetch
                 else:
-                    # Otherwise, move to the next page
-                    start += limit
+                    start += limit  # Move to the next page
             else:
                 print(f"Failed to retrieve data for API token: {api_token}")
                 break
 
     # Define the list of columns to keep
     columns_to_keep = [
-        "id",
-        "creator_user_id","org_name","add_time","value","pipeline_id","lost_time",
-        "won_time","lost_reason","status","org_id","owner_name"
+        "id", "creator_user_id", "org_name", "add_time", "value",
+        "pipeline_id", "lost_time", "won_time", "lost_reason",
+        "status", "org_id", "owner_name"
     ]
 
-    # Convert data to a DataFrame
     if all_data:
         df_filtered = pd.DataFrame(all_data)
 
         # Keep only the specified columns
         df_filtered = df_filtered[columns_to_keep]
 
-        def extract_name_from_dict(column_value):
-            if isinstance(column_value, dict) and 'name' in column_value:
-                return column_value['name']
-            return None
+        # Extract necessary values from dictionaries in specific columns
+        df_filtered['creator_user_id'] = df_filtered['creator_user_id'].apply(
+            lambda x: x['name'] if isinstance(x, dict) and 'name' in x else None
+        )
+        df_filtered['org_id'] = df_filtered['org_id'].apply(
+            lambda x: x['value'] if isinstance(x, dict) and 'value' in x else None
+        )
 
-        # Apply the function to the 'created_by_user_id' column
-        df_filtered.loc[:, 'creator_user_id'] = df_filtered['creator_user_id'].apply(extract_name_from_dict)
+        # Remove duplicates based on 'id' column
+        df_filtered = df_filtered.drop_duplicates(subset="id")
 
-        def extract_value_from_dict(column_value):
-            if isinstance(column_value, dict) and 'value' in column_value:
-                return column_value['value']
-            return None
-
-        # Use .loc[] to update the 'Organisation - ID' column (formerly org_id) safely
-        df_filtered.loc[:, 'org_id'] = df_filtered['org_id'].apply(extract_value_from_dict)
-
+        # Display row count to verify
+        print(f"Final row count after removing duplicates: {len(df_filtered)}")
 
         # Save the filtered data to a CSV file
         df_filtered.to_csv("/Users/patrick/PycharmProjects/stats/csv/pipedrive/deals_1574.csv", index=False)
-        print("Filtered data saved to 'pipe_deals_filtered_1574.csv'")
     else:
         print("No data to save.")
+
 
 def clean_deals():
     df = pd.read_csv('/Users/patrick/PycharmProjects/stats/csv/pipedrive/deals_1574.csv')
@@ -213,20 +209,29 @@ def clean_deals():
     # If needed, rename 'Organisation - ID' back to 'org_id' after the merge
     df_deals.rename(columns={'Organisation - ID': 'org_id'}, inplace=True)
 
-    # Remove the existing 'Organisation - 🙋‍♀️Source du lead' column (if it exists)
-    if 'Organisation - 🙋‍♀️Source du lead' in df_deals.columns:
-        df_deals.drop(columns=['Organisation - 🙋‍♀️Source du lead'], inplace=True)
+    # # Remove the existing 'Organisation - 🙋‍♀️Source du lead' column (if it exists)
+    # if 'Organisation - 🙋‍♀️Source du lead' in df_deals.columns:
+    #     df_deals.drop(columns=['Organisation - 🙋‍♀️Source du lead'], inplace=True)
 
     # Find the position of "Affaire - Pipeline" to insert the new column after it
     column_order = df_deals.columns.tolist()
     pipeline_index = column_order.index('Affaire - Pipeline')
 
-    # Reorder columns by moving "Organisation - 🙋‍♀️Source du lead" after "Affaire - Pipeline"
-    df_deals.insert(pipeline_index + 1, 'Organisation - 🙋‍♀️Source du lead',
-                    df_act['Organisation - 🙋‍♀️Source du lead'])
+    # # Reorder columns by moving "Organisation - 🙋‍♀️Source du lead" after "Affaire - Pipeline"
+    # df_deals.insert(pipeline_index + 1, 'Organisation - 🙋‍♀️Source du lead',
+    #                 df_act['Organisation - 🙋‍♀️Source du lead'])
 
     # Replace values in "Affaire - Pipeline" column
     df_deals['Affaire - Pipeline'] = df_deals['Affaire - Pipeline'].replace({1: 'Sales', 3: 'Appel d\'offres'})
+
+    df_deals['Affaire - Affaire créée'] = pd.to_datetime(df_deals['Affaire - Affaire créée'], errors='coerce')
+    df_deals['yearmonth_deal_created'] = df_deals['Affaire - Affaire créée'].dt.strftime('%Y-%m')
+
+    # df_deals['Affaire - Date de perte'] = pd.to_datetime(df_deals['Affaire - Date de perte'], errors='coerce')
+    # df_deals['yearmonth_deal_lost'] = df_deals['Affaire - Date de perte'].dt.strftime('%Y-%m')
+
+    df_deals['Affaire - Date de gain'] = pd.to_datetime(df_deals['Affaire - Date de gain'], errors='coerce')
+    df_deals['yearmonth_deal_won'] = df_deals['Affaire - Date de gain'].dt.strftime('%Y-%m')
 
     df_deals = df_deals.sort_values(by='Affaire - Affaire créée', ascending=False).drop_duplicates(
         subset='Affaire - Organisation', keep='first')
@@ -236,8 +241,7 @@ def clean_deals():
 
 def get_org():
     df = pd.read_csv("/Users/patrick/PycharmProjects/stats/csv/pipedrive/activities_1573.csv")
-    # Function to get organization details from Pipedrive API
-    # Organization columns we need to extract and rename
+    df["org_id"] = df["org_id"].fillna(0).astype(int)
     org_columns = {
         '922bac37cb73616026fec8bd253168c4926d5dc8': 'Organisation - ❌ Base Repoussoir',
         '2f79932ae88bd7bdb90cc2f1b467812661746c15': 'Organisation - Secteur Activité',
@@ -377,6 +381,13 @@ def merge_and_remove_duplicates():
 
     # Filter the DataFrame
     df_filtered = df_deduplicated[columns_to_keep]
+
+    df_filtered = df_filtered.copy()
+
+    df_filtered['Activité - Date de création'] = pd.to_datetime(df_filtered['Activité - Date de création'], errors='coerce')
+
+    # Create a new column 'yearmonth' by extracting year and month in 'YYYY-MM' format
+    df_filtered['yearmonth'] = df_filtered['Activité - Date de création'].dt.strftime('%Y-%m')
 
     # Save the final merged dataframe to a CSV file
     df_filtered.to_csv("/Users/patrick/PycharmProjects/stats/csv/pipedrive/final_activities.csv", index=False)

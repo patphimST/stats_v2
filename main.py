@@ -17,20 +17,20 @@ import config
 def main():
     try:
         # Step 1: Retrieve activities and deals
-        get_activities()
-        get_deals()
+        # get_activities()
+        # get_deals()
+        # #
+        # # # Step 2: Clean the deals data
+        # clean_deals()
 
-        # Step 2: Clean the deals data
-        clean_deals()
-
-        # Step 3: Perform organization data operations
-        get_org()
+        # # Step 3: Perform organization data operations
+        # get_org()
 
         # Step 4: Merge and remove duplicates
-        merge_and_remove_duplicates()
-
-        # Step 5: Upload the final CSV files to Google Sheets
-        updated()
+        # merge_and_remove_duplicates()
+        #
+        # # Step 5: Upload the final CSV files to Google Sheets
+        # updated()
 
         # If everything is successful, send a success email
         status = "✅ Success"
@@ -43,11 +43,11 @@ def main():
         error = error_message
 
     # Finally, send the status email
-    envoi_email(status, error)
+    # envoi_email(status, error)
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+    # main()
 
 summary_rdv()
 summary_deals()
